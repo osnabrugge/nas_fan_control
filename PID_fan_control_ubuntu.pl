@@ -54,15 +54,15 @@
 # The following ipmitool commands can be run when connected to the FreeNAS server via ssh.  They are useful to set a desired fan duty cycle before
 # checking the fan speeds.
 
-# Set duty cycle in Zone 0 to 100%: ipmitool raw 0x30 0x70 0x66 0x01 0x00 100  
-# Set duty cycle in Zone 0 to  50%: ipmitool raw 0x30 0x70 0x66 0x01 0x00 50
-# Set duty cycle in Zone 0 to  20%: ipmitool raw 0x30 0x70 0x66 0x01 0x00 20
+# Set duty cycle in Zone 0 to 100%: ipmitool raw 0x30 0x91 0x5A 0x3 0x10 255  
+# Set duty cycle in Zone 0 to  50%: ipmitool raw 0x30 0x91 0x5A 0x3 0x10 127
+# Set duty cycle in Zone 0 to  20%: ipmitool raw 0x30 0x91 0x5A 0x3 0x10 51
 
-# Set duty cycle in Zone 1 to 100%: ipmitool raw 0x30 0x70 0x66 0x01 0x01 100
-# Set duty cycle in Zone 1 to  50%: ipmitool raw 0x30 0x70 0x66 0x01 0x01 50
-# Set duty cycle in Zone 1 to  20%: ipmitool raw 0x30 0x70 0x66 0x01 0x01 20
+# Set duty cycle in Zone 1 to 100%: ipmitool raw 0x30 0x91 0x5A 0x3 0x11 255
+# Set duty cycle in Zone 1 to  50%: ipmitool raw 0x30 0x91 0x5A 0x3 0x11 127
+# Set duty cycle in Zone 1 to  20%: ipmitool raw 0x30 0x91 0x5A 0x3 0x11 51
 
-# Check duty cycle in Zone 0:                   ipmitool raw 0x30 0x70 0x66 0x00 0x00
+# Check duty cycle in Zone 0:                   ipmitool raw 0x30 0x91 0x5A 0x11 0x00
 # result is hex, with 64 being 100% duty cycle.  32 is 50% duty cycle.  14 is 20% duty cycle.
 
 #  Check duty cycle in Zone 1:                  ipmitool raw 0x30 0x70 0x66 0x00 0x01
@@ -140,7 +140,7 @@
 ## Read following config file at start and every X minutes to determine number of warmest disks to average,
 ## target average temperature and PID gains.  If file is not available, or corrupt, use defaults specified
 ## in this script.
-$config_file = '/root/nas_fan_control/PID_fan_control_config.ini';
+$config_file = './PID_fan_control_config.ini';
 
 ##DEFAULT VALUES
 ## Use the values declared below if the config file is not present
@@ -149,16 +149,16 @@ $Kp = 16/3;                  # PID control loop proportional gain
 $Ki = 0;                     # PID control loop integral gain
 $Kd = 24;                    # PID control loop derivative gain
 $hd_num_peak = 2;            # Number of warmest HDs to use when calculating average temp
-$hd_fan_duty_start     = 60; # HD fan duty cycle when script starts
+$hd_fan_duty_start   = 51; # HD fan duty cycle when script starts
 
 ## DEBUG LEVEL
 ## 0 means no debugging. 1,2,3,4 provide more verbosity
 ## You should run this script in at least level 1 to verify its working correctly on your system
-$debug = 0;
-$debug_log = '/root/Debug_PID_fan_control.log';
+$debug = 4        ;
+$debug_log = './Debug_PID_fan_control.log';
 
 ## LOG
-$log = '/root/PID_fan_control.log';
+$log = './PID_fan_control.log';
 $log_temp_summary_only      = 0; # 1 if not logging individual HD temperatures.  0 if logging temp of each HD
 $log_header_hourly_interval = 2; # number of hours between log headers.  Valid options are 1, 2, 3, 4, 6 & 12.
                                  # log headers will always appear at the start of a log, at midnight and any 
@@ -225,23 +225,23 @@ $cpu_temp_control = 1;  # 1 if the script will control a CPU fan to control CPU 
 ## You need to determine the actual max fan speeds that are achieved by the fans
 ## Connected to the cpu_fan_header and the hd_fan_header.
 ## These values are used to verify high/low fan speeds and trigger a BMC reset if necessary.
-$cpu_max_fan_speed    = 5600;
-$hd_max_fan_speed     = 1800;
+$cpu_max_fan_speed    = 7500;
+$hd_max_fan_speed     = 7500;
 
 
 ## CPU FAN DUTY LEVELS
 ## These levels are used to control the CPU fans
-$fan_duty_high         = 100;    # percentage on, ie 100% is full speed.
-$fan_duty_med          =  60;
-$fan_duty_low          =  20;
+$fan_duty_high         = 255;   # percentage on, ie 100% is full speed.
+$fan_duty_med          = 127;   # percentage on, ie 50% is full speed.
+$fan_duty_low          = 51;    # percentage on, ie 20% is full speed.
 
 ## HD FAN DUTY LEVELS
 ## These levels are used to control the HD fans
-$hd_fan_duty_high      = 100;    # percentage on, ie 100% is full speed.
-$hd_fan_duty_med_high  =  80;
-$hd_fan_duty_med_low   =  50;
-$hd_fan_duty_low       =  20;    # some 120mm fans stall below 30.
-#$hd_fan_duty_start    =  60;    # HD fan duty cycle when script starts - defined in config file
+$hd_fan_duty_high      = 255;   # percentage on, ie 100% is full speed.
+$hd_fan_duty_med_high  = 127;   # percentage on, ie 50% is full speed.
+$hd_fan_duty_med_low   = 51;    # percentage on, ie 20% is full speed. Note: some 120mm fans stall below 30.
+$hd_fan_duty_low       = 26;    # percentage on, ie 10% is full speed.
+#$hd_fan_duty_start    = 153;   # percentage on, ie 60% is full speed. HD fan duty cycle when script starts - defined in config file
 
 
 ## FAN ZONES
@@ -249,19 +249,20 @@ $hd_fan_duty_low       =  20;    # some 120mm fans stall below 30.
 # Your HD fans should be connected to FANA which is in Zone 1
 # You could switch the CPU/HD fans around, as long as you change the zones and fan header configurations.
 #
-# 0 = FAN1..5
-# 1 = FANA..FANC
-$cpu_fan_zone = 1;
-$hd_fan_zone  = 0;
+# 0x11 = FANA,B
+# 0x10 = FAN1,2,3,4,5
+$cpu_fan_zone = 0x11;
+$hd_fan_zone  = 0x10;
+
 
 
 ## FAN HEADERS
 ## these are the fan headers which are used to verify the fan zone is high. FAN1+ are all in Zone 0, FANA is Zone 1.
 ## cpu_fan_header should be in the cpu_fan_zone
 ## hd_fan_header should be in the hd_fan_zone
-$cpu_fan_header = "FANA";                 # used for printing to standard output for debugging   
-$hd_fan_header  = "FAN2";                 # used for printing to standard output for debugging   
-@hd_fan_list = ("FAN2", "FAN3");  # used for logging to file  
+$cpu_fan_header = "FANA", "FANB";                                         # used for printing to standard output for debugging   
+$hd_fan_header  = "FAN1", "FAN2", "FAN3", "FAN4", "FAN5";                 # used for printing to standard output for debugging   
+@hd_fan_list = ("FAN1", "FAN2", "FAN3", "FAN4", "FAN5", "FANA", "FANB");  # used for logging to file  
 
 
 ################
@@ -270,7 +271,7 @@ $hd_fan_header  = "FAN2";                 # used for printing to standard output
 
 ## UTILITY PATHS
 ## The script needs to know where the following utilities are
-$ipmitool   = "/usr/bin/ipmitool";
+$ipmitool   = "/usr/local/bin/ipmitool";
 $sensors    = "/usr/bin/sensors";
 $smartctl   = "/usr/sbin/smartctl";
 
@@ -354,7 +355,12 @@ sub main
     
     # need to go to Full mode so we have unfettered control of Fans
     set_fan_mode("full");
-    
+    # Immediately set fan speed to 20% after setting the mode to full
+    my $desired_fan_speed_hex = 0x33; # Hex value for 20% speed
+    `$ipmitool raw 0x30 0x91 0x5A 0x3 0x10 $desired_fan_speed_hex`;
+    `$ipmitool raw 0x30 0x91 0x5A 0x3 0x11 $desired_fan_speed_hex`;
+
+
     my $cpu_fan_level = ""; 
     my $old_cpu_fan_level = "";
     my $override_hd_fan_level = 0;
@@ -421,7 +427,7 @@ sub main
             }
             
     
-            # we refresh the hd_list from camcontrol devlist
+            # we refresh the hd_list from smartctl --scan
             # everytime because if you're adding/removing HDs we want
             # starting checking their temps too!
             @hd_list = get_hd_list();
@@ -510,7 +516,8 @@ sub main
 ################################################# SUBS
 sub get_hd_list_TN
 {
-    my $disk_list = `camcontrol devlist | grep -v "SSD" | grep -v "Verbatim" | grep -v "Kingston" | grep -v "Elements" | sed 's:.*(::;s:).*::;s:,pass[0-9]*::;s:pass[0-9]*,::' | egrep '^[a]*da[0-9]+\$' | tr '\012' ' '`;
+    # my $disk_list = `camcontrol | grep -v "SSD" | grep -v "Verbatim" | grep -v "Kingston" | grep -v "Elements" | sed 's:.*(::;s:).*::;s:,pass[0-9]*::;s:pass[0-9]*,::' | egrep '^[a]*da[0-9]+\$' | tr '\012' ' '`;
+    my $disk_list = `smartctl --scan | grep -v "SSD" | grep -v "Verbatim" | grep -v "Kingston" | grep -v "Elements" | sed -n 's|^/dev/\(.*\) -d.*|\1|p' | egrep '^(da[0-9]+|nvme[0-9]+)$' | tr '\n' ' '`;
     dprint(3,"$disk_list\n");
 
     my @vals = split(" ", $disk_list);
@@ -525,7 +532,7 @@ sub get_hd_list_TN
 
 sub get_hd_list
 {
-    my $disk_list = `lsblk | grep disk | grep -v 465 | grep -v zd | cut -c 1-3`;
+    my $disk_list = `lsblk | grep disk | grep -v 465 | grep -v zd | cut -c 1-7`;
     dprint(3,"$disk_list\n");
 
     my @vals = split(" ", $disk_list);
@@ -545,7 +552,7 @@ sub get_hd_temp
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "$smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $command = "$smartctl -A $disk_dev | grep 'Current Drive Temperature'";
          
         dprint( 3, "$command\n" );
         
@@ -553,11 +560,10 @@ sub get_hd_temp
 
         dprint( 2, "$output");
 
-        my @vals = split(" ", $output);
-
-        # grab 10th item from the output, which is the hard drive temperature (on Seagate NAS HDs)
-          my $temp = "$vals[9]";
-        chomp $temp;
+        # Assuming the output is like "Current Drive Temperature:     39 C"
+        # We split the output by ':' and then trim whitespace to get the temperature
+        my ($label, $temp) = split(":", $output);
+        $temp =~ s/^\s+|\s+C$//g; # Remove leading/trailing whitespace and the 'C' from the temperature
         
         if( $temp )
         {
@@ -573,7 +579,6 @@ sub get_hd_temp
 }
 
 sub get_hd_temps
-# return minimum, maximum, average HD temperatures and array of individual temps
 {
     my $max_temp = 0;
     my $min_temp = 1000;
@@ -584,34 +589,27 @@ sub get_hd_temps
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "$smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $command = "$smartctl -A $disk_dev | grep 'Current Drive Temperature'";
 
         my $output = `$command`;
 
-        my @vals = split(" ", $output);
-
-        # grab 10th item from the output, which is the hard drive temperature (on Seagate NAS HDs)
-        my $temp = "$vals[9]";
-        chomp $temp;
+        # Assuming the output is like "Current Drive Temperature:     39 C"
+        # We split the output by ':' and then trim whitespace to get the temperature
+        my ($label, $temp) = split(":", $output);
+        $temp =~ s/^\s+|\s+C$//g; # Remove leading/trailing whitespace and the 'C' from the temperature
 
         if( $temp )
         {
             push(@temp_list, $temp);
             $temp_sum += $temp;
-            $HD_count +=1;
+            $HD_count++;
             $max_temp = $temp if $temp > $max_temp;
             $min_temp = $temp if $temp < $min_temp;
         }
     }
 
-    my @temps_sorted = sort { $a <=> $b } @temp_list;
-
-    $temp_sum = 0;
-    for (my $n = $hd_num_peak; $n > 0; $n = $n -1) {
-	$temp_sum += pop(@temps_sorted);
-	}
-
-    my $ave_temp = $temp_sum / $hd_num_peak;
+    # Calculate the average temperature
+    my $ave_temp = $HD_count > 0 ? $temp_sum / $HD_count : 0;
 
     return ($min_temp, $max_temp, $ave_temp, @temp_list);
 }
@@ -902,7 +900,7 @@ sub calculate_hd_fan_duty_cycle_PID
     }
     else
     {
-        $hd_duty = 100;
+        $hd_duty = 255;
         dprint( 0, "Drive temperature ($hd_temp) invalid. going to 100%\n");
     }
     
@@ -1033,6 +1031,10 @@ sub bail_with_fans_full
 {
     dprint( 0, "Setting fans full before bailing!\n");
     set_fan_mode("full");
+    # Immediately set fan speed to 20% after setting the mode to full
+    my $desired_fan_speed_hex = 0x33; # Hex value for 20% speed
+    `$ipmitool raw 0x30 0x91 0x5A 0x3 0x11 $desired_fan_speed_hex`;
+    `$ipmitool raw 0x30 0x91 0x5A 0x3 0x10 $desired_fan_speed_hex`;
     die @_;
 }
 
@@ -1180,32 +1182,37 @@ sub set_fan_zone_duty_cycle
         
     dprint( 1, "Setting Zone $zone duty cycle to $duty%\n");
 
-    `$ipmitool raw 0x30 0x70 0x66 0x01 $zone $duty`;
+    `$ipmitool raw 0x30 0x91 0x5A 0x3 $zone $duty`;
     
     return;
 }
 
 
-sub set_fan_zone_level
-{
-    my ( $fan_zone, $level) = @_;
+sub set_fan_zone_level {
+    my ($fan_zone, $level) = @_;
+    
+    # Convert fan zone to integer if it's in hexadecimal string format
+    $fan_zone = hex($fan_zone) if $fan_zone =~ /^0x[0-9a-fA-F]+$/;
+
+    # Check if the fan zone value is valid
+    if ($fan_zone != 0x10 && $fan_zone != 0x11) {
+        dprint(0, "Illegal Fan Zone value: $fan_zone. Setting to default.\n");
+        # Set to a default value or handle the error as appropriate
+        return;
+    }
+    
     my $duty = 0;
     
-    #assumes high if not low or med, for safety.
-    if( $level eq "low" )
-    {
+    # Assumes high if not low or med, for safety.
+    if ($level eq "low") {
         $duty = $fan_duty_low;
-    }
-    elsif( $level eq "med" )
-    {
+    } elsif ($level eq "med") {
         $duty = $fan_duty_med;
-    }
-    else
-    {
+    } else {
         $duty = $fan_duty_high;
     }
 
-    set_fan_zone_duty_cycle( $fan_zone, $duty );
+    set_fan_zone_duty_cycle($fan_zone, $duty);
 }
 
 sub get_fan_header_by_name

@@ -54,18 +54,18 @@
 # The following ipmitool commands can be run when connected to the FreeNAS server via ssh.  They are useful to set a desired fan duty cycle before
 # checking the fan speeds.
 
-# Set duty cycle in Zone 0 to 100%: ipmitool raw 0x30 0x70 0x66 0x01 0x00 100  
-# Set duty cycle in Zone 0 to  50%: ipmitool raw 0x30 0x70 0x66 0x01 0x00 50
-# Set duty cycle in Zone 0 to  20%: ipmitool raw 0x30 0x70 0x66 0x01 0x00 20
+# Set duty cycle in Zone 0 to 100%: ipmitool raw 0x30 0x91 0x5A 0x3 0x10 0xFF  
+# Set duty cycle in Zone 0 to  50%: ipmitool raw 0x30 0x91 0x5A 0x3 0x10 0x7F
+# Set duty cycle in Zone 0 to  20%: ipmitool raw 0x30 0x91 0x5A 0x3 0x10 0x33
 
-# Set duty cycle in Zone 1 to 100%: ipmitool raw 0x30 0x70 0x66 0x01 0x01 100
-# Set duty cycle in Zone 1 to  50%: ipmitool raw 0x30 0x70 0x66 0x01 0x01 50
-# Set duty cycle in Zone 1 to  20%: ipmitool raw 0x30 0x70 0x66 0x01 0x01 20
+# Set duty cycle in Zone 1 to 100%: ipmitool raw 0x30 0x91 0x5A 0x3 0x11 0xFF
+# Set duty cycle in Zone 1 to  50%: ipmitool raw 0x30 0x91 0x5A 0x3 0x11 0x7F
+# Set duty cycle in Zone 1 to  20%: ipmitool raw 0x30 0x91 0x5A 0x3 0x11 0x33
 
-# Check duty cycle in Zone 0:                   ipmitool raw 0x30 0x70 0x66 0x00 0x00
+# Check duty cycle in Zone 0:                   ipmitool raw 0x30 0x91 0x5A 0x3 0x10
 # result is hex, with 64 being 100% duty cycle.  32 is 50% duty cycle.  14 is 20% duty cycle.
 
-#  Check duty cycle in Zone 1:                  ipmitool raw 0x30 0x70 0x66 0x00 0x01
+#  Check duty cycle in Zone 1:                  ipmitool raw 0x30 0x91 0x5A 0x3 0x10
 # result is hex, with 64 being 100% duty cycle.  32 is 50% duty cycle.  14 is 20% duty cycle.
 
 # Check fan speeds using: ipmitool sdr
@@ -223,8 +223,8 @@ $cpu_temp_control = 1;  # 1 if the script will control a CPU fan to control CPU 
 ## You need to determine the actual max fan speeds that are achieved by the fans
 ## Connected to the cpu_fan_header and the hd_fan_header.
 ## These values are used to verify high/low fan speeds and trigger a BMC reset if necessary.
-$cpu_max_fan_speed    = 1800;
-$hd_max_fan_speed     = 3300;
+$cpu_max_fan_speed    = 7000;
+$hd_max_fan_speed     = 7500;
 
 
 ## CPU FAN DUTY LEVELS
@@ -419,7 +419,7 @@ sub main
             }
             
     
-            # we refresh the hd_list from camcontrol devlist
+            # we refresh the hd_list from smartctl devlist
             # everytime because if you're adding/removing HDs we want
             # starting checking their temps too!
             @hd_list = get_hd_list();
@@ -508,9 +508,8 @@ sub main
 ################################################# SUBS
 sub get_hd_list
 {
-    my $disk_list = `camcontrol devlist | grep -v "SSD" | grep -v "Verbatim" | grep -v "Kingston" | grep -v "Elements" | sed 's:.*(::;s:).*::;s:,pass[0-9]*::;s:pass[0-9]*,::' | egrep '^[a]*da[0-9]+\$' | tr '\012' ' '`;
-    dprint(3,"$disk_list\n");
-
+    # my $disk_list = `camcontrol | grep -v "SSD" | grep -v "Verbatim" | grep -v "Kingston" | grep -v "Elements" | sed 's:.*(::;s:).*::;s:,pass[0-9]*::;s:pass[0-9]*,::' | egrep '^[a]*da[0-9]+\$' | tr '\012' ' '`;
+    my $disk_list = `smartctl --scan | grep -v "SSD" | grep -v "Verbatim" | grep -v "Kingston" | grep -v "Elements" | sed -n 's|^/dev/\(.*\) -d.*|\1|p' | egrep '^(da[0-9]+|nvme[0-9]+)$' | tr '\n' ' '`;
     my @vals = split(" ", $disk_list);
     
     foreach my $item (@vals)

@@ -15,7 +15,7 @@ my $default_Kp = 16/3;                  # PID control loop proportional gain
 my $default_Ki = 0;                     # PID control loop integral gain
 my $default_Kd = 24;                    # PID control loop derivative gain
 my $default_hd_num_peak = 2;            # Number of warmest HDs to use when calculating average temp
-my $default_hd_fan_duty_start     = 60; # HD fan duty cycle when script starts
+my $default_hd_fan_duty_start   = 51; # HD fan duty cycle when script starts
 
 our($config_Ta, $config_Kp, $config_Ki, $config_Kd, $config_num_disks, $config_hd_fan_start);
 our($hd_ave_target, $Kp, $Ki, $Kd, $hd_num_peak, $hd_fan_duty_start);
